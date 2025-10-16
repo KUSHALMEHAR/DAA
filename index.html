@@ -1,215 +1,92 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cab/Taxi Route Optimizer — Python Source (Download)</title>
-  <meta name="description" content="Python cab/taxi route optimization example (Dijkstra + A*) — packaged as an HTML page for GitHub upload." />
-
-  <!-- Prism.js for light syntax highlighting (CDN) -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cab Route Optimizer</title>
   <style>
-    body { font-family: Inter, Roboto, system-ui, -apple-system, sans-serif; padding: 28px; background: #f7fafc; color: #0f172a; }
-    .container { max-width: 980px; margin: 0 auto; background: white; border-radius: 10px; padding: 24px; box-shadow: 0 6px 18px rgba(2,6,23,0.08); }
-    h1 { margin: 0 0 6px 0; font-size: 22px; }
-    p.lead { margin: 6px 0 18px 0; color: #475569 }
-    .controls { display:flex; gap:10px; align-items:center; margin-bottom:16px; }
-    button { background:#0ea5e9; color: white; border: none; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600 }
-    button.secondary { background:#64748b }
-    .note { font-size:13px; color:#334155; margin-top:12px }
-    pre { max-height: 560px; overflow:auto; border-radius:8px; }
-    .meta { font-size:13px; color:#94a3b8; margin-bottom:12px }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9fafb;
+      color: #111827;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #2563eb;
+      color: white;
+      text-align: center;
+      padding: 1rem 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    h2 {
+      color: #1e3a8a;
+      margin-bottom: 0.5rem;
+    }
+    pre {
+      background-color: #111827;
+      color: #e5e7eb;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.95rem;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 0.7rem 1.2rem;
+      border-radius: 6px;
+      margin-right: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: #6b7280;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Cab/Taxi Route Optimizer — Python Source</h1>
-    <p class="lead">This page contains your Python script (Dijkstra + A*) packaged for easy GitHub upload. You can preview the code below and download it as <code>cab_route_optimizer.py</code>.</p>
-
-    <div class="controls">
-      <button id="downloadBtn">Download Python (.py)</button>
-      <button id="copyBtn" class="secondary">Copy to Clipboard</button>
-      <a id="rawLink" style="margin-left:auto; font-size:13px; color:#0ea5e9; text-decoration:none;" href="#">Preview raw file</a>
-    </div>
-
-    <div class="meta">File: <strong>cab_route_optimizer.py</strong> — ready to upload to GitHub. (This HTML does not run the Python; run the .py file locally or in any Python environment.)</div>
-
-    <pre><code class="language-python">import math
+  <header>🚖 Cab Route Optimizer (Ola/Uber Simulation)</header>
+  <main>
+    <h2>Python Code</h2>
+    <pre id="code-block">
+import math
 import heapq
 
 class Edge:
-    def __init__(self, to, distance, time):  # ✅ fixed
+    def __init__(self, to, distance, time):
         self.to = to
         self.distance = distance  # km
         self.time = time          # minutes (traffic factor included)
 
 class Node:
-    def __init__(self, id, f, g, h):  # ✅ fixed
+    def __init__(self, id, f, g, h):
         self.id = id
         self.f = f
         self.g = g
         self.h = h
-    def __lt__(self, other):  # ✅ fixed
-        return self.f &lt; other.f
-
-class Graph:
-    def __init__(self, V):  # ✅ fixed
-        self.V = V
-        self.adj = [[] for _ in range(V)]
-        self.coordinates = [(0,0)] * V
-
-    def addNode(self, id, x, y):
-        self.coordinates[id] = (x, y)
-
-    def addEdge(self, u, v, distance, time):
-        self.adj[u].append(Edge(v, distance, time))
-        self.adj[v].append(Edge(u, distance, time))  # undirected
-
-    def heuristic(self, u, v):
-        dx = self.coordinates[u][0] - self.coordinates[v][0]
-        dy = self.coordinates[u][1] - self.coordinates[v][1]
-        return math.sqrt(dx*dx + dy*dy)
-
-    def dijkstra(self, src, dest):
-        dist = [1e9] * self.V
-        parent = [-1] * self.V
-        dist[src] = 0
-
-        pq = [(0, src)]
-        while pq:
-            d, u = heapq.heappop(pq)
-            if u == dest:
-                break
-            for edge in self.adj[u]:
-                if dist[edge.to] > d + edge.distance:
-                    dist[edge.to] = d + edge.distance
-                    parent[edge.to] = u
-                    heapq.heappush(pq, (dist[edge.to], edge.to))
-
-        print("\n📍 Shortest Path (Dijkstra - Distance): ", end="")
-        self.printPath(parent, src, dest)
-        print(f" | Distance = {dist[dest]} km")
-
-    def astar(self, src, dest):
-        g = [1e9] * self.V
-        f = [1e9] * self.V
-        parent = [-1] * self.V
-        g[src] = 0
-        f[src] = self.heuristic(src, dest)
-
-        pq = []
-        heapq.heappush(pq, Node(src, f[src], 0, self.heuristic(src, dest)))
-
-        while pq:
-            current = heapq.heappop(pq)
-            u = current.id
-            if u == dest:
-                break
-
-            for edge in self.adj[u]:
-                tentative_g = g[u] + edge.time
-                if tentative_g &lt; g[edge.to]:
-                    g[edge.to] = tentative_g
-                    f[edge.to] = g[edge.to] + self.heuristic(edge.to, dest)
-                    parent[edge.to] = u
-                    heapq.heappush(pq, Node(edge.to, f[edge.to], g[edge.to], self.heuristic(edge.to, dest)))
-
-        print("\n⚡ Fastest Path (A* - Time + Traffic): ", end="")
-        self.printPath(parent, src, dest)
-        print(f" | Time = {g[dest]} minutes")
-
-    def printPath(self, parent, src, dest):
-        path = []
-        v = dest
-        while v != -1:
-            path.append(v)
-            v = parent[v]
-        path.reverse()
-        for i, node in enumerate(path):
-            print(chr(ord('A') + node), end="")
-            if i &lt; len(path) - 1:
-                print(" → ", end="")
-        print()
-
-    def displayMap(self):
-        print("\n🗺  City Map Layout")
-        print("--------------------------------------------------")
-        print("   A(Railway) -----4km/6min----- B(Bus Stand)")
-        print("     |                             |")
-        print("    3km/5min                     3km/4min")
-        print("     |                             |")
-        print("   C(Airport) -----3km/4min----- E(Hospital)")
-        print("       \\                         /")
-        print("        \\-----5km/10min---------/")
-        print("                 (traffic road)\n")
-        print("   D(Mall) -----2km/3min----- F(University)")
-        print("--------------------------------------------------")
-
-# ---------------- Main ---------------- #
-V = 6
-g = Graph(V)
-
-# Assign coordinates for heuristic
-g.addNode(0, 0, 0)   # A
-g.addNode(1, 2, 2)   # B
-g.addNode(2, 2, -2)  # C
-g.addNode(3, 4, 2)   # D
-g.addNode(4, 4, -2)  # E
-g.addNode(5, 6, 0)   # F
-
-# Add edges: u, v, distance, time
-g.addEdge(0,1,4,6)
-g.addEdge(0,2,3,5)
-g.addEdge(1,3,3,4)
-g.addEdge(2,4,3,4)
-g.addEdge(3,5,2,3)
-g.addEdge(4,5,2,2)
-g.addEdge(1,2,5,10)  # traffic road
-
-print("🚖 Cab/Taxi Route Optimization (Ola/Uber Simulation)")
-g.displayMap()  # show ASCII map before input
-
-# User input
-src = ord(input("\nEnter Source (A-F): ").upper()) - ord('A')
-dest = ord(input("Enter Destination (A-F): ").upper()) - ord('A')
-
-g.dijkstra(src, dest)
-g.astar(src, dest)
-
-print("\n✅ Recommended Route: Based on Traffic (A* faster)")
-</code></pre>
-
-    <p class="note">Notes:
-      <ul>
-        <li>To run the script: save as <code>cab_route_optimizer.py</code> and run with <code>python cab_route_optimizer.py</code> (requires Python 3.x).</li>
-        <li>This HTML is intended for preview &amp; download before uploading to GitHub. The code itself is unchanged from your original; HTML does not execute Python in the browser.</li>
-      </ul>
-    </p>
-  </div>
-
-  <script>
-    // The raw python source as a string (same content as the preview block)
-    const pySource = `import math
-import heapq
-
-class Edge:
-    def __init__(self, to, distance, time):  # ✅ fixed
-        self.to = to
-        self.distance = distance  # km
-        self.time = time          # minutes (traffic factor included)
-
-class Node:
-    def __init__(self, id, f, g, h):  # ✅ fixed
-        self.id = id
-        self.f = f
-        self.g = g
-        self.h = h
-    def __lt__(self, other):  # ✅ fixed
+    def __lt__(self, other):
         return self.f < other.f
 
 class Graph:
-    def __init__(self, V):  # ✅ fixed
+    def __init__(self, V):
         self.V = V
         self.adj = [[] for _ in range(V)]
         self.coordinates = [(0,0)] * V
@@ -295,76 +172,63 @@ class Graph:
         print("    3km/5min                     3km/4min")
         print("     |                             |")
         print("   C(Airport) -----3km/4min----- E(Hospital)")
-        print("       \\\                         /")
-        print("        \\\-----5km/10min---------/")
+        print("       \\                         /")
+        print("        \\-----5km/10min---------/")
         print("                 (traffic road)\n")
         print("   D(Mall) -----2km/3min----- F(University)")
         print("--------------------------------------------------")
 
-# ---------------- Main ---------------- #
 V = 6
 g = Graph(V)
+g.addNode(0, 0, 0)
+g.addNode(1, 2, 2)
+g.addNode(2, 2, -2)
+g.addNode(3, 4, 2)
+g.addNode(4, 4, -2)
+g.addNode(5, 6, 0)
 
-# Assign coordinates for heuristic
-g.addNode(0, 0, 0)   # A
-g.addNode(1, 2, 2)   # B
-g.addNode(2, 2, -2)  # C
-g.addNode(3, 4, 2)   # D
-g.addNode(4, 4, -2)  # E
-g.addNode(5, 6, 0)   # F
-
-# Add edges: u, v, distance, time
 g.addEdge(0,1,4,6)
 g.addEdge(0,2,3,5)
 g.addEdge(1,3,3,4)
 g.addEdge(2,4,3,4)
 g.addEdge(3,5,2,3)
 g.addEdge(4,5,2,2)
-g.addEdge(1,2,5,10)  # traffic road
+g.addEdge(1,2,5,10)
 
 print("🚖 Cab/Taxi Route Optimization (Ola/Uber Simulation)")
-g.displayMap()  # show ASCII map before input
+g.displayMap()
 
-# User input
 src = ord(input("\nEnter Source (A-F): ").upper()) - ord('A')
 dest = ord(input("Enter Destination (A-F): ").upper()) - ord('A')
 
 g.dijkstra(src, dest)
 g.astar(src, dest)
 
-print("\n✅ Recommended Route: Based on Traffic (A* faster)")`;
+print("\n✅ Recommended Route: Based on Traffic (A* faster)")
+    </pre>
+    <div>
+      <button onclick="copyCode()">📋 Copy Code</button>
+      <button onclick="downloadCode()">⬇️ Download .py</button>
+    </div>
+  </main>
+  <footer>© 2025 Cab Route Optimizer | Created for GitHub Upload</footer>
 
-    const downloadBtn = document.getElementById('downloadBtn');
-    const copyBtn = document.getElementById('copyBtn');
-    const rawLink = document.getElementById('rawLink');
-
-    downloadBtn.addEventListener('click', () =&gt; {
-      const blob = new Blob([pySource], { type: 'text/x-python' });
+  <script>
+    function copyCode() {
+      const code = document.getElementById('code-block').innerText;
+      navigator.clipboard.writeText(code);
+      alert('Code copied to clipboard!');
+    }
+    function downloadCode() {
+      const code = document.getElementById('code-block').innerText;
+      const blob = new Blob([code], { type: 'text/x-python' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = 'cab_route_optimizer.py';
-      document.body.appendChild(a);
       a.click();
-      a.remove();
       URL.revokeObjectURL(url);
-    });
-
-    copyBtn.addEventListener('click', async () =&gt; {
-      try {
-        await navigator.clipboard.writeText(pySource);
-        copyBtn.textContent = 'Copied!';
-        setTimeout(() =&gt; copyBtn.textContent = 'Copy to Clipboard', 1400);
-      } catch (e) {
-        alert('Copy failed — your browser may not allow clipboard access.');
-      }
-    });
-
-    rawLink.addEventListener('click', (e) =&gt; {
-      e.preventDefault();
-      const w = window.open();
-      w.document.write('<pre>' + pySource.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</pre>');
-    });
+    }
   </script>
 </body>
 </html>
